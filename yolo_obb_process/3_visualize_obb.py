@@ -14,9 +14,10 @@ import os
 
 import cv2
 import numpy as np
+from tqdm import tqdm
 
 # class_index -> 类别名, 需与转换时的 CLASSES 顺序一致 (Other 已被过滤)
-NAMES = ["BS"]
+NAMES = ["wenzi"]
 IMG_EXTS = (".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff", ".webp")
 
 # 每个类别一种颜色 (BGR)
@@ -47,12 +48,12 @@ def draw_labels(img, label_path, names):
             if not parts:
                 continue
             if len(parts) != 9:
-                print(f"[警告] {label_path} 第 {ln} 行字段数为 {len(parts)} (应为 9), 跳过")
+                tqdm.write(f"[警告] {label_path} 第 {ln} 行字段数为 {len(parts)} (应为 9), 跳过")
                 continue
             cls_id = int(parts[0])
             coords = np.array(parts[1:], dtype=np.float64).reshape(4, 2)
             if (coords < 0).any() or (coords > 1).any():
-                print(f"[警告] {label_path} 第 {ln} 行坐标超出 [0,1]")
+                tqdm.write(f"[警告] {label_path} 第 {ln} 行坐标超出 [0,1]")
             pts = np.round(coords * [w, h]).astype(np.int32)
 
             color = COLORS[cls_id % len(COLORS)]
@@ -80,16 +81,17 @@ def main():
     imgs = sorted(f for f in os.listdir(args.images) if f.lower().endswith(IMG_EXTS))
 
     n_img = n_obj = n_nolabel = 0
-    for name in imgs:
+    pbar = tqdm(imgs, desc="可视化标签")
+    for name in pbar:
         img = imread(os.path.join(args.images, name))
         if img is None:
-            print(f"[警告] 无法读取图片: {name}")
+            tqdm.write(f"[警告] 无法读取图片: {name}")
             continue
         label_path = os.path.join(args.labels, os.path.splitext(name)[0] + ".txt")
         if os.path.isfile(label_path):
             n_obj += draw_labels(img, label_path, args.names)
         else:
-            print(f"[提示] 无对应标签: {name}")
+            tqdm.write(f"[提示] 无对应标签: {name}")
             n_nolabel += 1
         imwrite(os.path.join(args.output, name), img)
         n_img += 1

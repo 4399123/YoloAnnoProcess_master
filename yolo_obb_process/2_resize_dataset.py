@@ -28,6 +28,7 @@ import argparse
 
 import cv2
 import numpy as np
+from tqdm import tqdm
 
 IMG_EXTS = (".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff", ".webp")
 
@@ -63,7 +64,7 @@ def convert_label(label_path, src_w, src_h, dst_w, dst_h):
             if not parts:
                 continue
             if len(parts) != 9:
-                print('[警告] {} 第 {} 行字段数为 {} (应为 9), 跳过'.format(label_path, ln, len(parts)))
+                tqdm.write('[警告] {} 第 {} 行字段数为 {} (应为 9), 跳过'.format(label_path, ln, len(parts)))
                 continue
             cls_id = parts[0]  # 类别 id 原样保留
             coords = np.array(parts[1:], dtype=np.float64).reshape(4, 2)
@@ -84,19 +85,19 @@ def main():
     os.makedirs(opt.out_labels, exist_ok=True)
 
     n_done = n_empty = n_nolabel = n_bad = 0
-    for name in sorted(os.listdir(opt.images)):
-        if not name.lower().endswith(IMG_EXTS):
-            continue
+    img_names = [name for name in sorted(os.listdir(opt.images)) if name.lower().endswith(IMG_EXTS)]
+    pbar = tqdm(img_names, desc='Resize数据集')
+    for name in pbar:
         stem = os.path.splitext(name)[0]
         label_path = os.path.join(opt.labels, stem + '.txt')
 
         if not os.path.isfile(label_path):
-            print('[提示] 缺少标签, 跳过: {}'.format(name))
+            tqdm.write('[提示] 缺少标签, 跳过: {}'.format(name))
             n_nolabel += 1
             continue
         img = imread(os.path.join(opt.images, name))
         if img is None:
-            print('[警告] 无法读取图片, 跳过: {}'.format(name))
+            tqdm.write('[警告] 无法读取图片, 跳过: {}'.format(name))
             n_bad += 1
             continue
         src_h, src_w = img.shape[:2]
@@ -106,12 +107,12 @@ def main():
             is_empty = not f.read().strip()
         lines = [] if is_empty else convert_label(label_path, src_w, src_h, dst_w, dst_h)
         if not lines:
-            print('[提示] 标签为空, 仅 resize 图像: {}'.format(name))
+            tqdm.write('[提示] 标签为空, 仅 resize 图像: {}'.format(name))
             n_empty += 1
 
         resized = cv2.resize(img, (dst_w, dst_h), interpolation=cv2.INTER_LINEAR)
         if not imwrite(os.path.join(opt.out_images, name), resized):
-            print('[警告] 图片保存失败: {}'.format(name))
+            tqdm.write('[警告] 图片保存失败: {}'.format(name))
             n_bad += 1
             continue
         with open(os.path.join(opt.out_labels, stem + '.txt'), 'w', encoding='utf-8') as f:

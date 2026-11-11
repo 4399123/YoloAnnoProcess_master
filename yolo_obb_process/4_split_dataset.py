@@ -33,7 +33,7 @@ parser.add_argument('--images', default=r'imagesX', type=str, help='input image 
 parser.add_argument('--labels', default=r'labelsX', type=str, help='input label path')
 # 输出数据集根目录, 自动创建
 parser.add_argument('--output', default=r'dataset', type=str, help='output dataset path')
-parser.add_argument('--train_percent', default=0.9, type=float, help='train ratio')
+parser.add_argument('--train_percent', default=0.85, type=float, help='train ratio')
 parser.add_argument('--move', action='store_true', help='move files instead of copy')
 opt = parser.parse_args()
 
